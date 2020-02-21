@@ -3,10 +3,9 @@ package jsonrpc // import "vimagination.zapto.org/jsonrpc"
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"sync"
-
-	"vimagination.zapto.org/errors"
 )
 
 type request struct {
@@ -66,7 +65,7 @@ func (s *Server) Handle() error {
 	for {
 		var req request
 		if err := s.decoder.Decode(&req); err != nil {
-			return errors.WithContext("error decoding JSON request: ", err)
+			return fmt.Errorf("error decoding JSON request: %w", err)
 		}
 		go s.handleRequest(req)
 	}
