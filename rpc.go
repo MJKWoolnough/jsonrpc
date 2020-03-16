@@ -71,26 +71,28 @@ func (s *Server) Handle() error {
 	}
 }
 
-func (s *Server) handleRequest(req request) {
+func (s *Server) handleRequest(req request) error {
 	resp := Response{ID: req.ID}
 	var err error
 	resp.Result, err = s.handler.HandleRPC(req.Method, req.Params)
 	if err != nil {
 		resp.Error = err.Error()
 	}
-	s.Send(resp)
+	return s.Send(resp)
 }
 
 // Send sends the encoded Response to the client
-func (s *Server) Send(resp Response) {
+func (s *Server) Send(resp Response) error {
 	s.encoderLock.Lock()
-	s.encoder.Encode(resp)
+	err := s.encoder.Encode(resp)
 	s.encoderLock.Unlock()
+	return err
 }
 
 // SendData sends the raw bytes (unencoded) to the client
-func (s *Server) SendData(data []byte) {
+func (s *Server) SendData(data []byte) error {
 	s.encoderLock.Lock()
-	s.writer.Write(data)
+	_, err := s.writer.Write(data)
 	s.encoderLock.Unlock()
+	return err
 }
