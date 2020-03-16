@@ -2,6 +2,8 @@
 --
     import "vimagination.zapto.org/jsonrpc"
 
+Package jsonrpc implements simple JSON RPC client/server message handling
+### systems
 
 ## Usage
 
@@ -56,7 +58,7 @@ single client
 #### func  New
 
 ```go
-func New(conn io.ReadWriter, handler RPCHandler) *Server
+func New(conn io.ReadWriter, handler Handler) *Server
 ```
 New creates a new Server connection
 
@@ -73,13 +75,13 @@ connection, or from some fault on the wire.
 #### func (*Server) Send
 
 ```go
-func (s *Server) Send(resp Response)
+func (s *Server) Send(resp Response) error
 ```
 Send sends the encoded Response to the client
 
 #### func (*Server) SendData
 
 ```go
-func (s *Server) SendData(data []byte)
+func (s *Server) SendData(data []byte) error
 ```
 SendData sends the raw bytes (unencoded) to the client
