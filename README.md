@@ -11,17 +11,17 @@ Package jsonrpc implements simple JSON RPC client/server message handling
 
 ```go
 type Handler interface {
-	HandleRPC(method string, data []byte) (interface{}, error)
+	HandleRPC(method string, data json.RawMessage) (interface{}, error)
 }
 ```
 
-Handler takes a method name and a byte slice representing JSON encoded data and
-should return data OR an error
+Handler takes a method name and a JSON Raw Message byte slice and should return
+data OR an error, not both
 
 #### type HandlerFunc
 
 ```go
-type HandlerFunc func(string, []byte) (interface{}, error)
+type HandlerFunc func(string, json.RawMessage) (interface{}, error)
 ```
 
 HandlerFunc is a convenience type to wrap a function for the Handler interface
@@ -29,7 +29,7 @@ HandlerFunc is a convenience type to wrap a function for the Handler interface
 #### func (HandlerFunc) HandleRPC
 
 ```go
-func (r HandlerFunc) HandleRPC(method string, data []byte) (interface{}, error)
+func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (interface{}, error)
 ```
 HandleRPC implements the Handler inteface
 
