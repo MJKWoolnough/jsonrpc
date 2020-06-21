@@ -90,7 +90,7 @@ func (s *Server) Send(resp Response) error {
 }
 
 // SendData sends the raw bytes (unencoded) to the client
-func (s *Server) SendData(data []byte) error {
+func (s *Server) SendData(data json.RawMessage) error {
 	s.encoderLock.Lock()
 	_, err := s.writer.Write(data)
 	s.encoderLock.Unlock()
