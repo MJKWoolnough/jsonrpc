@@ -95,7 +95,7 @@ func (s *Server) Send(resp Response) error {
 
 func (s *Server) sendJSON(id int, data json.RawMessage) error {
 	s.encoderLock.Lock()
-	_, err := s.writer.Write(append(append(append(strconv.AppendInt(append(make([]byte, 36+len(data)), "{\"id\":"...), int64(id), 10), ",\"result\":"...), data...), '}')) // 6 (head) + 19 (int64) + 10 (mid) + 1 (tail)
+	_, err := s.writer.Write(append(append(append(strconv.AppendInt(append(make([]byte, 37+len(data)), "{\"id\":"...), int64(id), 10), ",\"result\":"...), data...), '}')) // 6 (head) + 20 (int64) + 10 (mid) + 1 (tail)
 	s.encoderLock.Unlock()
 	return err
 }
