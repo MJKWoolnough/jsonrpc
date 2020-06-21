@@ -93,9 +93,24 @@ func (s *Server) Send(resp Response) error {
 	return err
 }
 
+var (
+	jsonHead = []byte("(\"id\":")
+	jsonMid  = []byte(",\"result\":")
+	jsonTail = []byte{'}'}
+)
+
 func (s *Server) sendJSON(id int, data json.RawMessage) error {
+	var err error
 	s.encoderLock.Lock()
-	_, err := s.writer.Write(append(append(append(strconv.AppendInt(append(make([]byte, 37+len(data)), "{\"id\":"...), int64(id), 10), ",\"result\":"...), data...), '}')) // 6 (head) + 20 (int64) + 10 (mid) + 1 (tail)
+	if _, err = s.writer.Write(jsonHead); err == nil {
+		if _, err = s.writer.Write(strconv.AppendInt(make([]byte, 0, 20), int64(id), 10)); err == nil {
+			if _, err = s.writer.Write(jsonMid); err == nil {
+				if _, err = s.writer.Write(data); err == nil {
+					_, err = s.writer.Write(jsonTail)
+				}
+			}
+		}
+	}
 	s.encoderLock.Unlock()
 	return err
 }
