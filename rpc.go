@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
 	"sync"
 )
 
 type request struct {
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params"`
-	ID     int             `json:"id"`
+	ID     json.RawMessage `json:"id"`
 }
 
 // Response represents a response to a client
@@ -73,20 +72,12 @@ func (s *Server) Handle() error {
 }
 
 func (s *Server) handleRequest(req request) error {
-	resp := Response{ID: req.ID}
-	var err error
-	resp.Result, err = s.handler.HandleRPC(req.Method, req.Params)
-	if err != nil {
-		resp.Error = err.Error()
-	}
-	return s.Send(resp)
+	result, err := s.handler.HandleRPC(req.Method, req.Params)
+	return s.send(req.ID, result, err)
 }
 
 // Send sends the encoded Response to the client
 func (s *Server) Send(resp Response) error {
-	if rm, ok := resp.Result.(json.RawMessage); ok && resp.Error == "" {
-		return s.sendJSON(resp.ID, rm)
-	}
 	s.encoderLock.Lock()
 	err := s.encoder.Encode(resp)
 	s.encoderLock.Unlock()
@@ -96,18 +87,32 @@ func (s *Server) Send(resp Response) error {
 var (
 	jsonHead = []byte("(\"id\":")
 	jsonMid  = []byte(",\"result\":")
+	jsonErr  = []byte(",\"error\":")
 	jsonTail = []byte{'}'}
 )
 
-func (s *Server) sendJSON(id int, data json.RawMessage) error {
+func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 	var err error
 	s.encoderLock.Lock()
 	if _, err = s.writer.Write(jsonHead); err == nil {
-		if _, err = s.writer.Write(strconv.AppendInt(make([]byte, 0, 20), int64(id), 10)); err == nil {
-			if _, err = s.writer.Write(jsonMid); err == nil {
-				if _, err = s.writer.Write(data); err == nil {
-					_, err = s.writer.Write(jsonTail)
+		if _, err = s.writer.Write(id); err == nil {
+			if e == nil {
+				_, err = s.writer.Write(jsonMid)
+				if err == nil {
+					if rm, ok := data.(json.RawMessage); ok {
+						_, err = s.writer.Write(rm)
+					} else {
+						err = s.encoder.Encode(data)
+					}
 				}
+			} else {
+				_, err = s.writer.Write(jsonErr)
+				if err == nil {
+					err = s.encoder.Encode(err.Error())
+				}
+			}
+			if err == nil {
+				_, err = s.writer.Write(jsonTail)
 			}
 		}
 	}
