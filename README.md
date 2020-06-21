@@ -82,6 +82,6 @@ Send sends the encoded Response to the client
 #### func (*Server) SendData
 
 ```go
-func (s *Server) SendData(data []byte) error
+func (s *Server) SendData(data json.RawMessage) error
 ```
 SendData sends the raw bytes (unencoded) to the client
