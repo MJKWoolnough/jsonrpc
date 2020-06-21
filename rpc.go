@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"sync"
 )
 
@@ -83,8 +84,18 @@ func (s *Server) handleRequest(req request) error {
 
 // Send sends the encoded Response to the client
 func (s *Server) Send(resp Response) error {
+	if rm, ok := resp.Result.(json.RawMessage); ok && resp.Error == "" {
+		return s.sendJSON(resp.ID, rm)
+	}
 	s.encoderLock.Lock()
 	err := s.encoder.Encode(resp)
+	s.encoderLock.Unlock()
+	return err
+}
+
+func (s *Server) sendJSON(id int, data json.RawMessage) error {
+	s.encoderLock.Lock()
+	_, err := s.writer.Write(append(append(append(strconv.AppendInt(append(make([]byte, 36+len(data)), "{\"id\":"...), int64(id), 10), ",\"result\":"...), data...), '}')) // 6 (head) + 19 (int64) + 10 (mid) + 1 (tail)
 	s.encoderLock.Unlock()
 	return err
 }
