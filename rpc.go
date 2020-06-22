@@ -84,38 +84,34 @@ func (s *Server) Send(resp Response) error {
 	return err
 }
 
-var (
-	jsonHead = []byte("(\"id\":")
-	jsonMid  = []byte(",\"result\":")
-	jsonErr  = []byte(",\"error\":")
-	jsonTail = []byte{'}'}
+const (
+	jsonHead = "{\"id\":"
+	jsonMid  = ",\"result\":"
+	jsonErr  = ",\"error\":"
+	jsonTail = '}'
 )
 
 func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
-	var err error
-	s.encoderLock.Lock()
-	if _, err = s.writer.Write(jsonHead); err == nil {
-		if _, err = s.writer.Write(id); err == nil {
-			if e == nil {
-				_, err = s.writer.Write(jsonMid)
-				if err == nil {
-					if rm, ok := data.(json.RawMessage); ok {
-						_, err = s.writer.Write(rm)
-					} else {
-						err = s.encoder.Encode(data)
-					}
-				}
-			} else {
-				_, err = s.writer.Write(jsonErr)
-				if err == nil {
-					err = s.encoder.Encode(err.Error())
-				}
-			}
-			if err == nil {
-				_, err = s.writer.Write(jsonTail)
-			}
+	var (
+		err error
+		rm  json.RawMessage
+		ok  bool
+	)
+	mid := jsonMid
+	if e != nil {
+		rm, err = json.Marshal(e.Error())
+		mid = jsonErr
+	} else {
+		rm, ok = data.(json.RawMessage)
+		if !ok {
+			rm, err = json.Marshal(data)
 		}
 	}
+	if err != nil {
+		return err
+	}
+	s.encoderLock.Lock()
+	_, err = s.writer.Write(append(append(append(append(append(make([]byte, 0, len(jsonHead)+len(id)+len(mid)+len(rm)+1), jsonHead...), id...), mid...), rm...), jsonTail))
 	s.encoderLock.Unlock()
 	return err
 }
