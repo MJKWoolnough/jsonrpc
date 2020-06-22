@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 )
 
 type request struct {
@@ -42,9 +41,8 @@ type Server struct {
 	handler Handler
 	decoder *json.Decoder
 
-	encoderLock sync.Mutex
-	encoder     *json.Encoder
-	writer      io.Writer
+	encoder *json.Encoder
+	writer  io.Writer
 }
 
 // New creates a new Server connection
@@ -78,10 +76,7 @@ func (s *Server) handleRequest(req request) error {
 
 // Send sends the encoded Response to the client
 func (s *Server) Send(resp Response) error {
-	s.encoderLock.Lock()
-	err := s.encoder.Encode(resp)
-	s.encoderLock.Unlock()
-	return err
+	return s.encoder.Encode(resp)
 }
 
 const (
@@ -110,16 +105,12 @@ func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 	if err != nil {
 		return err
 	}
-	s.encoderLock.Lock()
 	_, err = s.writer.Write(append(append(append(append(append(make([]byte, 0, len(jsonHead)+len(id)+len(mid)+len(rm)+1), jsonHead...), id...), mid...), rm...), jsonTail))
-	s.encoderLock.Unlock()
 	return err
 }
 
 // SendData sends the raw bytes (unencoded) to the client
 func (s *Server) SendData(data json.RawMessage) error {
-	s.encoderLock.Lock()
 	_, err := s.writer.Write(data)
-	s.encoderLock.Unlock()
 	return err
 }
