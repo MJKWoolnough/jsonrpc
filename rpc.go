@@ -86,6 +86,8 @@ const (
 	jsonTail = '}'
 )
 
+var jsonNil = json.RawMessage{'n', 'u', 'l', 'l'}
+
 func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 	var (
 		err error
@@ -96,10 +98,14 @@ func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 	if e != nil {
 		rm, err = json.Marshal(e.Error())
 		mid = jsonErr
+	} else if data == nil {
+		rm = jsonNil
 	} else {
 		rm, ok = data.(json.RawMessage)
 		if !ok {
 			rm, err = json.Marshal(data)
+		} else if len(rm) == 0 {
+			rm = jsonNil
 		}
 	}
 	if err != nil {
