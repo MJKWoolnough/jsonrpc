@@ -3,6 +3,7 @@ package jsonrpc // import "vimagination.zapto.org/jsonrpc"
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -17,7 +18,18 @@ type request struct {
 type Response struct {
 	ID     int         `json:"id"`
 	Result interface{} `json:"result,omitempty"`
-	Error  string      `json:"error,omitempty"`
+	Error  *Error      `json:"error,omitempty"`
+}
+
+// Error represents the error type for RPC requests
+type Error struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func (e Error) Error() string {
+	return e.Message
 }
 
 // Handler takes a method name and a JSON Raw Message byte slice and should
@@ -96,7 +108,14 @@ func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 	)
 	mid := jsonMid
 	if e != nil {
-		rm, err = json.Marshal(e.Error())
+		if errr, ok := errors.Unwrap(e).(*Error); ok {
+			rm, err = json.Marshal(errr)
+		} else {
+			rm, err = json.Marshal(Error{
+				Message: e.Error(),
+				Data:    e,
+			})
+		}
 		mid = jsonErr
 	} else if data == nil {
 		rm = jsonNil
