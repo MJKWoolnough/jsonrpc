@@ -7,6 +7,24 @@ Package jsonrpc implements simple JSON RPC client/server message handling
 
 ## Usage
 
+#### type Error
+
+```go
+type Error struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+```
+
+Error represents the error type for RPC requests
+
+#### func (Error) Error
+
+```go
+func (e Error) Error() string
+```
+
 #### type Handler
 
 ```go
@@ -39,7 +57,7 @@ HandleRPC implements the Handler inteface
 type Response struct {
 	ID     int         `json:"id"`
 	Result interface{} `json:"result,omitempty"`
-	Error  string      `json:"error,omitempty"`
+	Error  *Error      `json:"error,omitempty"`
 }
 ```
 
