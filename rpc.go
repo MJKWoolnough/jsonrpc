@@ -128,10 +128,12 @@ func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 		}
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
-	_, err = s.writer.Write(append(append(append(append(append(make([]byte, 0, len(jsonHead)+len(id)+len(mid)+len(rm)+1), jsonHead...), id...), mid...), rm...), jsonTail))
-	return err
+	if _, err = s.writer.Write(append(append(append(append(append(make([]byte, 0, len(jsonHead)+len(id)+len(mid)+len(rm)+1), jsonHead...), id...), mid...), rm...), jsonTail)); err != nil {
+		return fmt.Errorf("error writing to socket: %w", err)
+	}
+	return nil
 }
 
 // SendData sends the raw bytes (unencoded) to the client
