@@ -138,6 +138,8 @@ func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
 
 // SendData sends the raw bytes (unencoded) to the client
 func (s *Server) SendData(data json.RawMessage) error {
-	_, err := s.writer.Write(data)
-	return err
+	if _, err := s.writer.Write(data); err != nil {
+		return fmt.Errorf("error sending data: %w", err)
+	}
+	return nil
 }
