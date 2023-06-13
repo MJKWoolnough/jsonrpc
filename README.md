@@ -7,13 +7,55 @@ Package jsonrpc implements simple JSON RPC client/server message handling
 
 ## Usage
 
+```go
+var ErrExisting = errors.New("existing waiter")
+```
+
+#### type Client
+
+```go
+type Client struct {
+}
+```
+
+
+#### func  NewClient
+
+```go
+func NewClient(rw ReadWriteCloser) *Client
+```
+
+#### func (*Client) Await
+
+```go
+func (c *Client) Await(id int, cb func(json.RawMessage)) error
+```
+
+#### func (*Client) Close
+
+```go
+func (c *Client) Close() error
+```
+
+#### func (*Client) Request
+
+```go
+func (c *Client) Request(method string, params any) (json.RawMessage, error)
+```
+
+#### func (*Client) Subscribe
+
+```go
+func (c *Client) Subscribe(id int, cb func(json.RawMessage)) error
+```
+
 #### type Error
 
 ```go
 type Error struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 ```
 
@@ -25,11 +67,17 @@ Error represents the error type for RPC requests
 func (e Error) Error() string
 ```
 
+#### func (*Error) Is
+
+```go
+func (e *Error) Is(target error) bool
+```
+
 #### type Handler
 
 ```go
 type Handler interface {
-	HandleRPC(method string, data json.RawMessage) (interface{}, error)
+	HandleRPC(method string, data json.RawMessage) (any, error)
 }
 ```
 
@@ -39,7 +87,7 @@ data OR an error, not both
 #### type HandlerFunc
 
 ```go
-type HandlerFunc func(string, json.RawMessage) (interface{}, error)
+type HandlerFunc func(string, json.RawMessage) (any, error)
 ```
 
 HandlerFunc is a convenience type to wrap a function for the Handler interface
@@ -47,17 +95,27 @@ HandlerFunc is a convenience type to wrap a function for the Handler interface
 #### func (HandlerFunc) HandleRPC
 
 ```go
-func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (interface{}, error)
+func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (any, error)
 ```
 HandleRPC implements the Handler inteface
+
+#### type ReadWriteCloser
+
+```go
+type ReadWriteCloser interface {
+	io.ReadWriter
+	io.Closer
+}
+```
+
 
 #### type Response
 
 ```go
 type Response struct {
-	ID     int         `json:"id"`
-	Result interface{} `json:"result,omitempty"`
-	Error  *Error      `json:"error,omitempty"`
+	ID     int    `json:"id"`
+	Result any    `json:"result,omitempty"`
+	Error  *Error `json:"error,omitempty"`
 }
 ```
 
