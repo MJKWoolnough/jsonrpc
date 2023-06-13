@@ -89,6 +89,7 @@ func TestRequest(t *testing.T) {
 }
 
 func TestAwait(t *testing.T) {
+	t.Parallel()
 	serverConn, clientConn := makeServerClientConn()
 
 	s := New(serverConn, new(simpleHandler))
@@ -107,6 +108,13 @@ func TestAwait(t *testing.T) {
 		resp <- num
 	})
 
+	total := receiveData(s, resp)
+	if total != 5 {
+		t.Errorf("expecting result 5, got %d", total)
+	}
+}
+
+func receiveData(s *Server, ch chan int) int {
 	s.Send(Response{
 		ID:     -1,
 		Result: 5,
@@ -116,26 +124,24 @@ func TestAwait(t *testing.T) {
 		Result: 6,
 	})
 
-	timeout := time.After(time.Second)
-
 	var total int
+	timeout := time.After(time.Second)
 
 Loop:
 	for {
 		select {
-		case num := <-resp:
+		case num := <-ch:
 			total += num
 		case <-timeout:
 			break Loop
 		}
 	}
 
-	if total != 5 {
-		t.Errorf("expecting result 5, got %d", total)
-	}
+	return total
 }
 
 func TestSubscribe(t *testing.T) {
+	t.Parallel()
 	serverConn, clientConn := makeServerClientConn()
 
 	s := New(serverConn, new(simpleHandler))
@@ -154,28 +160,7 @@ func TestSubscribe(t *testing.T) {
 		resp <- num
 	})
 
-	s.Send(Response{
-		ID:     -1,
-		Result: 5,
-	})
-	s.Send(Response{
-		ID:     -1,
-		Result: 6,
-	})
-
-	timeout := time.After(time.Second)
-
-	var total int
-
-Loop:
-	for {
-		select {
-		case num := <-resp:
-			total += num
-		case <-timeout:
-			break Loop
-		}
-	}
+	total := receiveData(s, resp)
 
 	if total != 11 {
 		t.Errorf("expecting result 11, got %d", total)
