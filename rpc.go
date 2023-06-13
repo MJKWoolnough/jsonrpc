@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 )
 
 type request struct {
@@ -25,6 +26,24 @@ type Error struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
+}
+
+func (e *Error) Is(target error) bool {
+	err, ok := target.(Error)
+	if ok {
+		return e.Is(&err)
+	}
+
+	errr, ok := target.(*Error)
+	if !ok {
+		return false
+	}
+
+	if (errr == nil) != (e == nil) {
+		return false
+	}
+
+	return errr.Code == e.Code && reflect.DeepEqual(errr.Data, e.Data) && errr.Message == e.Message
 }
 
 func (e Error) Error() string {
