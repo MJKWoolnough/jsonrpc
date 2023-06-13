@@ -16,16 +16,16 @@ type request struct {
 
 // Response represents a response to a client
 type Response struct {
-	ID     int         `json:"id"`
-	Result interface{} `json:"result,omitempty"`
-	Error  *Error      `json:"error,omitempty"`
+	ID     int    `json:"id"`
+	Result any    `json:"result,omitempty"`
+	Error  *Error `json:"error,omitempty"`
 }
 
 // Error represents the error type for RPC requests
 type Error struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 func (e Error) Error() string {
@@ -35,15 +35,15 @@ func (e Error) Error() string {
 // Handler takes a method name and a JSON Raw Message byte slice and should
 // return data OR an error, not both
 type Handler interface {
-	HandleRPC(method string, data json.RawMessage) (interface{}, error)
+	HandleRPC(method string, data json.RawMessage) (any, error)
 }
 
 // HandlerFunc is a convenience type to wrap a function for the Handler
 // interface
-type HandlerFunc func(string, json.RawMessage) (interface{}, error)
+type HandlerFunc func(string, json.RawMessage) (any, error)
 
 // HandleRPC implements the Handler inteface
-func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (interface{}, error) {
+func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (any, error) {
 	return r(method, data)
 }
 
@@ -100,7 +100,7 @@ const (
 
 var jsonNil = json.RawMessage{'n', 'u', 'l', 'l'}
 
-func (s *Server) send(id json.RawMessage, data interface{}, e error) error {
+func (s *Server) send(id json.RawMessage, data any, e error) error {
 	var (
 		err error
 		rm  json.RawMessage
