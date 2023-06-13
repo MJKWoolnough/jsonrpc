@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 )
 
 type rw struct {
@@ -84,5 +85,52 @@ func TestRequest(t *testing.T) {
 		} else if !bytes.Equal(test.Response, resp) {
 			t.Errorf("test %d: expecting response %s, got %s", n+1, test.Response, resp)
 		}
+	}
+}
+
+func TestAwait(t *testing.T) {
+	serverConn, clientConn := makeServerClientConn()
+
+	s := New(serverConn, new(simpleHandler))
+	go s.Handle()
+	defer serverConn.Close()
+
+	c := NewClient(clientConn)
+	defer c.Close()
+
+	resp := make(chan int, 2)
+
+	c.Await(-1, func(data json.RawMessage) {
+		var num int
+		json.Unmarshal(data, &num)
+
+		resp <- num
+	})
+
+	s.Send(Response{
+		ID:     -1,
+		Result: 5,
+	})
+	s.Send(Response{
+		ID:     -1,
+		Result: 6,
+	})
+
+	timeout := time.After(time.Second)
+
+	var total int
+
+Loop:
+	for {
+		select {
+		case num := <-resp:
+			total += num
+		case <-timeout:
+			break Loop
+		}
+	}
+
+	if total != 5 {
+		t.Errorf("expecting result 5, got %d", total)
 	}
 }
