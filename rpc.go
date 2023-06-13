@@ -3,7 +3,6 @@ package jsonrpc // import "vimagination.zapto.org/jsonrpc"
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -108,7 +107,7 @@ func (s *Server) send(id json.RawMessage, data any, e error) error {
 	)
 	mid := jsonMid
 	if e != nil {
-		if errr, ok := errors.Unwrap(e).(*Error); ok {
+		if errr, ok := e.(*Error); ok {
 			rm, err = json.Marshal(errr)
 		} else {
 			rm, err = json.Marshal(Error{
