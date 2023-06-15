@@ -12,6 +12,7 @@ type wait struct {
 	response func(json.RawMessage)
 }
 
+// ReadWriteCloser implements all methods of io.Reader, io.Writer, and io.Closer.
 type ReadWriteCloser interface {
 	io.ReadWriter
 	io.Closer
@@ -29,6 +30,7 @@ type clientRequest struct {
 	Params any    `json:"params,omitempty"`
 }
 
+// Client represents a client connection to a JSONRPC server.
 type Client struct {
 	encoder *json.Encoder
 	decoder *json.Decoder
@@ -40,6 +42,7 @@ type Client struct {
 	waits    map[int]*wait
 }
 
+// NewClient create a new client from the given connection.
 func NewClient(rw ReadWriteCloser) *Client {
 	c := &Client{
 		encoder:  json.NewEncoder(rw),
@@ -81,6 +84,12 @@ func (c *Client) respond() {
 	}
 }
 
+// Request makes an RPC call to the connected server with the given method and
+// params.
+//
+// The params will be JSON encoded.
+//
+// Returns the JSON encoded response from the server, or an error.
 func (c *Client) Request(method string, params any) (json.RawMessage, error) {
 	ch := make(chan clientResponse)
 	c.mu.Lock()
@@ -100,6 +109,8 @@ func (c *Client) Request(method string, params any) (json.RawMessage, error) {
 	return resp.Result, nil
 }
 
+// RequestValue acts as Request, but will unmarshal the response into the given
+// value.
 func (c *Client) RequestValue(method string, params any, response any) error {
 	respData, err := c.Request(method, params)
 	if err != nil {
@@ -109,10 +120,18 @@ func (c *Client) RequestValue(method string, params any, response any) error {
 	return json.Unmarshal(respData, response)
 }
 
+// Await will wait for a message pushed from the server with the given ID and
+// call the given func with the JSON encoded data.
+//
+// The id given should be a negative value.
 func (c *Client) Await(id int, cb func(json.RawMessage)) error {
 	return c.wait(id, cb, false)
 }
 
+// Subscribe will wait for all messages pushed from the server with the given
+// ID and call the given func with the JSON encoded data for each one.
+//
+// The id given should be a negative value.
 func (c *Client) Subscribe(id int, cb func(json.RawMessage)) error {
 	return c.wait(id, cb, true)
 }
@@ -131,6 +150,7 @@ func (c *Client) wait(id int, cb func(json.RawMessage), keep bool) error {
 	return nil
 }
 
+// Close will stop all client goroutines and close the connection to the server.
 func (c *Client) Close() error {
 	c.mu.Lock()
 	for _, r := range c.requests {
@@ -144,4 +164,7 @@ func (c *Client) Close() error {
 	return c.closer.Close()
 }
 
-var ErrExisting = errors.New("existing waiter")
+// Error
+var (
+	ErrExisting = errors.New("existing waiter")
+)
