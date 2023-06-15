@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -164,5 +165,37 @@ func TestSubscribe(t *testing.T) {
 
 	if total != 11 {
 		t.Errorf("expecting result 11, got %d", total)
+	}
+}
+
+func TestRequestValue(t *testing.T) {
+	serverConn, clientConn := makeServerClientConn()
+
+	s := New(serverConn, new(simpleHandler))
+	go s.Handle()
+	defer serverConn.Close()
+
+	c := NewClient(clientConn)
+	defer c.Close()
+
+	for n, test := range [...]struct {
+		Method   string
+		Params   any
+		Response any
+		Error    error
+	}{
+		{
+			Method:   "add",
+			Params:   [2]int{5, 6},
+			Response: int(11),
+		},
+	} {
+		v := reflect.New(reflect.TypeOf(test.Response))
+		err := c.RequestValue(test.Method, test.Params, v.Interface())
+		if !errors.Is(test.Error, err) {
+			t.Errorf("test %d: expecting error %s, got %s", n+1, test.Error, err)
+		} else if resp := v.Elem().Interface(); !reflect.DeepEqual(test.Response, resp) {
+			t.Errorf("test %d: expecting response %s, got %s", n+1, test.Response, resp)
+		}
 	}
 }
