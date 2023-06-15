@@ -8,8 +8,11 @@ Package jsonrpc implements simple JSON RPC client/server message handling
 ## Usage
 
 ```go
-var ErrExisting = errors.New("existing waiter")
+var (
+	ErrExisting = errors.New("existing waiter")
+)
 ```
+Error
 
 #### type Client
 
@@ -18,36 +21,61 @@ type Client struct {
 }
 ```
 
+Client represents a client connection to a JSONRPC server.
 
 #### func  NewClient
 
 ```go
 func NewClient(rw ReadWriteCloser) *Client
 ```
+NewClient create a new client from the given connection.
 
 #### func (*Client) Await
 
 ```go
 func (c *Client) Await(id int, cb func(json.RawMessage)) error
 ```
+Await will wait for a message pushed from the server with the given ID and call
+the given func with the JSON encoded data.
+
+The id given should be a negative value.
 
 #### func (*Client) Close
 
 ```go
 func (c *Client) Close() error
 ```
+Close will stop all client goroutines and close the connection to the server.
 
 #### func (*Client) Request
 
 ```go
 func (c *Client) Request(method string, params any) (json.RawMessage, error)
 ```
+Request makes an RPC call to the connected server with the given method and
+params.
+
+The params will be JSON encoded.
+
+Returns the JSON encoded response from the server, or an error.
+
+#### func (*Client) RequestValue
+
+```go
+func (c *Client) RequestValue(method string, params any, response any) error
+```
+RequestValue acts as Request, but will unmarshal the response into the given
+value.
 
 #### func (*Client) Subscribe
 
 ```go
 func (c *Client) Subscribe(id int, cb func(json.RawMessage)) error
 ```
+Subscribe will wait for all messages pushed from the server with the given ID
+and call the given func with the JSON encoded data for each one.
+
+The id given should be a negative value.
 
 #### type Error
 
@@ -108,6 +136,7 @@ type ReadWriteCloser interface {
 }
 ```
 
+ReadWriteCloser implements all methods of io.Reader, io.Writer, and io.Closer.
 
 #### type Response
 
