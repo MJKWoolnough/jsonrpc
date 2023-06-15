@@ -100,6 +100,15 @@ func (c *Client) Request(method string, params any) (json.RawMessage, error) {
 	return resp.Result, nil
 }
 
+func (c *Client) RequestValue(method string, params any, response any) error {
+	respData, err := c.Request(method, params)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(respData, response)
+}
+
 func (c *Client) Await(id int, cb func(json.RawMessage)) error {
 	return c.wait(id, cb, false)
 }
