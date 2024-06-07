@@ -60,26 +60,28 @@ func NewClient(rw ReadWriteCloser) *Client {
 func (c *Client) respond() {
 	for {
 		var resp clientResponse
+
 		if err := c.decoder.Decode(&resp); err != nil {
 			return
 		}
 
 		c.mu.Lock()
+
 		if resp.ID >= 0 {
-			ch, ok := c.requests[resp.ID]
-			if ok {
+			if ch, ok := c.requests[resp.ID]; ok {
 				delete(c.requests, resp.ID)
 				ch <- resp
 			}
 		} else {
-			w, ok := c.waits[resp.ID]
-			if ok {
+			if w, ok := c.waits[resp.ID]; ok {
 				if !w.keep {
 					delete(c.waits, resp.ID)
 				}
+
 				go w.response(resp.Result)
 			}
 		}
+
 		c.mu.Unlock()
 	}
 }
@@ -92,20 +94,27 @@ func (c *Client) respond() {
 // Returns the JSON encoded response from the server, or an error.
 func (c *Client) Request(method string, params any) (json.RawMessage, error) {
 	ch := make(chan clientResponse)
+
 	c.mu.Lock()
+
 	id := c.nextID
 	c.nextID++
 	c.requests[id] = ch
+
 	c.mu.Unlock()
+
 	c.encoder.Encode(clientRequest{
 		ID:     id,
 		Method: method,
 		Params: params,
 	})
+
 	resp := <-ch
+
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
+
 	return resp.Result, nil
 }
 
@@ -139,20 +148,23 @@ func (c *Client) Subscribe(id int, cb func(json.RawMessage)) error {
 func (c *Client) wait(id int, cb func(json.RawMessage), keep bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	_, ok := c.waits[id]
-	if ok {
+
+	if _, ok := c.waits[id]; ok {
 		return ErrExisting
 	}
+
 	c.waits[id] = &wait{
 		keep:     keep,
 		response: cb,
 	}
+
 	return nil
 }
 
 // Close will stop all client goroutines and close the connection to the server.
 func (c *Client) Close() error {
 	c.mu.Lock()
+
 	for _, r := range c.requests {
 		r <- clientResponse{
 			Error: &Error{
@@ -160,11 +172,13 @@ func (c *Client) Close() error {
 			},
 		}
 	}
+
 	c.mu.Unlock()
+
 	return c.closer.Close()
 }
 
-// Error
+// Error.
 var (
 	ErrExisting = errors.New("existing waiter")
 )
