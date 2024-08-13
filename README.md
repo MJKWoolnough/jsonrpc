@@ -3,7 +3,7 @@
     import "vimagination.zapto.org/jsonrpc"
 
 Package jsonrpc implements simple JSON RPC client/server message handling
-### systems
+systems.
 
 ## Usage
 
@@ -12,7 +12,7 @@ var (
 	ErrExisting = errors.New("existing waiter")
 )
 ```
-Error
+Error.
 
 #### type Client
 
@@ -87,7 +87,7 @@ type Error struct {
 }
 ```
 
-Error represents the error type for RPC requests
+Error represents the error type for RPC requests.
 
 #### func (Error) Error
 
@@ -110,7 +110,7 @@ type Handler interface {
 ```
 
 Handler takes a method name and a JSON Raw Message byte slice and should return
-data OR an error, not both
+data OR an error, not both.
 
 #### type HandlerFunc
 
@@ -118,14 +118,14 @@ data OR an error, not both
 type HandlerFunc func(string, json.RawMessage) (any, error)
 ```
 
-HandlerFunc is a convenience type to wrap a function for the Handler interface
+HandlerFunc is a convenience type to wrap a function for the Handler interface.
 
 #### func (HandlerFunc) HandleRPC
 
 ```go
 func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (any, error)
 ```
-HandleRPC implements the Handler inteface
+HandleRPC implements the Handler interface.
 
 #### type ReadWriteCloser
 
@@ -148,7 +148,7 @@ type Response struct {
 }
 ```
 
-Response represents a response to a client
+Response represents a response to a client.
 
 #### type Server
 
@@ -158,14 +158,14 @@ type Server struct {
 ```
 
 Server represents a RPC server connection that will handle responses from a
-single client
+single client.
 
 #### func  New
 
 ```go
 func New(conn io.ReadWriter, handler Handler) *Server
 ```
-New creates a new Server connection
+New creates a new Server connection.
 
 #### func (*Server) Handle
 
@@ -182,11 +182,11 @@ connection, or from some fault on the wire.
 ```go
 func (s *Server) Send(resp Response) error
 ```
-Send sends the encoded Response to the client
+Send sends the encoded Response to the client.
 
 #### func (*Server) SendData
 
 ```go
 func (s *Server) SendData(data json.RawMessage) error
 ```
-SendData sends the raw bytes (unencoded) to the client
+SendData sends the raw bytes (unencoded) to the client.
