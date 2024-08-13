@@ -60,7 +60,7 @@ type Handler interface {
 // interface.
 type HandlerFunc func(string, json.RawMessage) (any, error)
 
-// HandleRPC implements the Handler inteface.
+// HandleRPC implements the Handler interface.
 func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (any, error) {
 	return r(method, data)
 }
