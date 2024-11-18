@@ -6,12 +6,15 @@ import (
 	"io"
 )
 
+// ClientServer represents both a client and server RPC connection.
 type ClientServer struct {
 	serverHandler
 	clientHandler
 	decoder *json.Decoder
 }
 
+// NewClientServer creates both client and server handling on the same
+// connection.
 func NewClientServer(conn io.ReadWriter, handler Handler) *ClientServer {
 	closer, ok := conn.(io.Closer)
 	if !ok {
@@ -41,6 +44,11 @@ type requestOrResponse struct {
 	Error  *Error          `json:"error"`
 }
 
+// Handle starts the server's handling loop. This method must be active to
+// handle client responses.
+//
+// The func will return only when it encounters a read error, be it from a
+// closed connection, or from some fault on the wire.
 func (c *ClientServer) Handle() error {
 	for {
 		var req requestOrResponse
