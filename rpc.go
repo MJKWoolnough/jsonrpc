@@ -68,20 +68,26 @@ func (r HandlerFunc) HandleRPC(method string, data json.RawMessage) (any, error)
 // Server represents a RPC server connection that will handle responses from a
 // single client.
 type Server struct {
-	handler Handler
 	decoder *json.Decoder
-
 	encoder *json.Encoder
+
+	serverHandler
+}
+
+type serverHandler struct {
+	handler Handler
 	writer  io.Writer
 }
 
 // New creates a new Server connection.
 func New(conn io.ReadWriter, handler Handler) *Server {
 	return &Server{
-		handler: handler,
 		decoder: json.NewDecoder(conn),
 		encoder: json.NewEncoder(conn),
-		writer:  conn,
+		serverHandler: serverHandler{
+			handler: handler,
+			writer:  conn,
+		},
 	}
 }
 
@@ -101,7 +107,7 @@ func (s *Server) Handle() error {
 	}
 }
 
-func (s *Server) handleRequest(req request) error {
+func (s *serverHandler) handleRequest(req request) error {
 	result, err := s.handler.HandleRPC(req.Method, req.Params)
 
 	return s.send(req.ID, result, err)
@@ -121,7 +127,7 @@ const (
 
 var jsonNil = json.RawMessage{'n', 'u', 'l', 'l'}
 
-func (s *Server) send(id json.RawMessage, data any, e error) error {
+func (s *serverHandler) send(id json.RawMessage, data any, e error) error {
 	var (
 		err error
 		rm  json.RawMessage
@@ -158,7 +164,7 @@ func (s *Server) send(id json.RawMessage, data any, e error) error {
 }
 
 // SendData sends the raw bytes (unencoded) to the client.
-func (s *Server) SendData(data json.RawMessage) error {
+func (s *serverHandler) SendData(data json.RawMessage) error {
 	if _, err := s.writer.Write(data); err != nil {
 		return fmt.Errorf("error sending data: %w", err)
 	}
