@@ -32,12 +32,16 @@ type clientRequest struct {
 
 // Client represents a client connection to a JSONRPC server.
 type Client struct {
+	clientHandler
+}
+
+type clientHandler struct {
 	encoder *json.Encoder
 	decoder *json.Decoder
 	closer  io.Closer
-	nextID  int
 
 	mu       sync.Mutex
+	nextID   int
 	requests map[int]chan clientResponse
 	waits    map[int]*wait
 }
@@ -45,11 +49,13 @@ type Client struct {
 // NewClient create a new client from the given connection.
 func NewClient(rw ReadWriteCloser) *Client {
 	c := &Client{
-		encoder:  json.NewEncoder(rw),
-		decoder:  json.NewDecoder(rw),
-		closer:   rw,
-		requests: make(map[int]chan clientResponse),
-		waits:    make(map[int]*wait),
+		clientHandler: clientHandler{
+			decoder:  json.NewDecoder(rw),
+			closer:   rw,
+			encoder:  json.NewEncoder(rw),
+			requests: make(map[int]chan clientResponse),
+			waits:    make(map[int]*wait),
+		},
 	}
 
 	go c.respond()
@@ -65,25 +71,29 @@ func (c *Client) respond() {
 			return
 		}
 
-		c.mu.Lock()
-
-		if resp.ID >= 0 {
-			if ch, ok := c.requests[resp.ID]; ok {
-				delete(c.requests, resp.ID)
-				ch <- resp
-			}
-		} else {
-			if w, ok := c.waits[resp.ID]; ok {
-				if !w.keep {
-					delete(c.waits, resp.ID)
-				}
-
-				go w.response(resp.Result)
-			}
-		}
-
-		c.mu.Unlock()
+		c.handleResponse(resp)
 	}
+}
+
+func (c *clientHandler) handleResponse(resp clientResponse) {
+	c.mu.Lock()
+
+	if resp.ID >= 0 {
+		if ch, ok := c.requests[resp.ID]; ok {
+			delete(c.requests, resp.ID)
+			ch <- resp
+		}
+	} else {
+		if w, ok := c.waits[resp.ID]; ok {
+			if !w.keep {
+				delete(c.waits, resp.ID)
+			}
+
+			go w.response(resp.Result)
+		}
+	}
+
+	c.mu.Unlock()
 }
 
 // Request makes an RPC call to the connected server with the given method and
@@ -92,7 +102,7 @@ func (c *Client) respond() {
 // The params will be JSON encoded.
 //
 // Returns the JSON encoded response from the server, or an error.
-func (c *Client) Request(method string, params any) (json.RawMessage, error) {
+func (c *clientHandler) Request(method string, params any) (json.RawMessage, error) {
 	ch := make(chan clientResponse)
 
 	c.mu.Lock()
@@ -120,7 +130,7 @@ func (c *Client) Request(method string, params any) (json.RawMessage, error) {
 
 // RequestValue acts as Request, but will unmarshal the response into the given
 // value.
-func (c *Client) RequestValue(method string, params any, response any) error {
+func (c *clientHandler) RequestValue(method string, params any, response any) error {
 	respData, err := c.Request(method, params)
 	if err != nil {
 		return err
@@ -133,7 +143,7 @@ func (c *Client) RequestValue(method string, params any, response any) error {
 // call the given func with the JSON encoded data.
 //
 // The id given should be a negative value.
-func (c *Client) Await(id int, cb func(json.RawMessage)) error {
+func (c *clientHandler) Await(id int, cb func(json.RawMessage)) error {
 	return c.wait(id, cb, false)
 }
 
@@ -141,11 +151,11 @@ func (c *Client) Await(id int, cb func(json.RawMessage)) error {
 // ID and call the given func with the JSON encoded data for each one.
 //
 // The id given should be a negative value.
-func (c *Client) Subscribe(id int, cb func(json.RawMessage)) error {
+func (c *clientHandler) Subscribe(id int, cb func(json.RawMessage)) error {
 	return c.wait(id, cb, true)
 }
 
-func (c *Client) wait(id int, cb func(json.RawMessage), keep bool) error {
+func (c *clientHandler) wait(id int, cb func(json.RawMessage), keep bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -162,7 +172,7 @@ func (c *Client) wait(id int, cb func(json.RawMessage), keep bool) error {
 }
 
 // Close will stop all client goroutines and close the connection to the server.
-func (c *Client) Close() error {
+func (c *clientHandler) Close() error {
 	c.mu.Lock()
 
 	for _, r := range c.requests {
