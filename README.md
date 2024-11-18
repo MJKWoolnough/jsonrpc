@@ -77,6 +77,87 @@ and call the given func with the JSON encoded data for each one.
 
 The id given should be a negative value.
 
+#### type ClientServer
+
+```go
+type ClientServer struct {
+}
+```
+
+ClientServer represents both a client and server RPC connection.
+
+#### func  NewClientServer
+
+```go
+func NewClientServer(conn io.ReadWriter, handler Handler) *ClientServer
+```
+NewClientServer creates both client and server handling on the same connection.
+
+#### func (*ClientServer) Await
+
+```go
+func (c *ClientServer) Await(id int, cb func(json.RawMessage)) error
+```
+Await will wait for a message pushed from the server with the given ID and call
+the given func with the JSON encoded data.
+
+The id given should be a negative value.
+
+#### func (*ClientServer) Close
+
+```go
+func (c *ClientServer) Close() error
+```
+Close will stop all client goroutines and close the connection to the server.
+
+#### func (*ClientServer) Handle
+
+```go
+func (c *ClientServer) Handle() error
+```
+Handle starts the server's handling loop. This method must be active to handle
+client responses.
+
+The func will return only when it encounters a read error, be it from a closed
+connection, or from some fault on the wire.
+
+#### func (*ClientServer) Request
+
+```go
+func (c *ClientServer) Request(method string, params any) (json.RawMessage, error)
+```
+Request makes an RPC call to the connected server with the given method and
+params.
+
+The params will be JSON encoded.
+
+Returns the JSON encoded response from the server, or an error.
+
+#### func (*ClientServer) RequestValue
+
+```go
+func (c *ClientServer) RequestValue(method string, params any, response any) error
+```
+RequestValue acts as Request, but will unmarshal the response into the given
+value.
+
+#### func (*ClientServer) SendData
+
+```go
+func (s *ClientServer) SendData(data json.RawMessage) error
+```
+SendData sends the raw bytes (unencoded) to the client.
+
+#### func (*ClientServer) Subscribe
+
+```go
+func (c *ClientServer) Subscribe(id int, cb func(json.RawMessage)) error
+```
+Subscribe will wait for all messages pushed from the server with the given ID
+and call the given func with the JSON encoded data for each one.
+
+The id given should be a negative value.
+
 #### type Error
 
 ```go
